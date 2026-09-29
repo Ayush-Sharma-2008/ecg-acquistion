@@ -3,11 +3,10 @@
 ## Session 1 — Soldering headers
 Date: 8/31/2026
 
-- Boards used: two AD8232 clones, ordered as backups for each other
+- Boards used: two AD8232, ordered as backups for each other
 - Soldered header pins at 350°C
-- Resoldered Endpins due to low amounts of solder applied
-- Verified with continuity test: all 6 pins beep to their pads, no
-  beeps between adjacent pins
+- Resoldered endpins due to low amounts of solder applied
+- Verified with continuity test: all 6 pins beep to their pads, no beeps between adjacent pins
 
 ---
 
@@ -26,23 +25,19 @@ Date: 9/04/2026
 
 - Uploaded starter sketch, opened Serial Plotter
 - First attempt: Noisy signal with no clear heart rate spike
-- Encountered a flickering power LED on the AD8232 — spent significant time isolating the cause:
+- Encountered a flickering power LED on the AD8232 amd spent significant time isolating the cause:
   - Ruled out both AD8232 boards (symptom appeared on both)
-  - Ruled out the Arduino itself (Blink sketch ran normally, L LED
-    blinked correctly, TX/RX behaved as expected for each sketch)
-  - A multimeter reading of 0V initially suggested a dead power rail,
-    but this turned out to be a meter/probing error, not a real fault
+  - Ruled out the Arduino itself (Blink sketch ran normally, LED blinked correctly, TX/RX behaved as expected for each sketch)
+  - A multimeter reading of 0V initially suggested a dead power rail,but this turned out to be a meter/probing error, not a real fault
   - Root cause: Turns out the Arduino IDE software was autoscaling, causing the appearence of no visible heart rate spike when it was actually occuring
-- Confirmed a real heartbeat: 4 clear R-peaks in a 3-second window
-  (t=10-13s), evenly spaced ~0.7-0.8s apart, consistent with ~75-85 bpm
+- Confirmed a real heartbeat: 4 clear R-peaks in a 3-second window (t=10-13s), evenly spaced ~0.7-0.8s apart, consistent with ~75-85 bpm
 - Noted: recording showed intermittent leads-off dropouts and
-  significant noise (likely due to movement) between beats — this is to be expected on raw,
-  unfiltered signal
+  significant noise (likely due to movement) between beats but this is to be expected on unfiltered signal
 
 ---
 
 ## Session 4 — Data logging and MATLAB import
-Date:
+Date: 9/05/2026
 
 - Wrote log_ecg.py to record 60s of data to CSV at 500 Hz
 - Verified actual sampling rate in MATLAB: [your Hz reading]
@@ -52,35 +47,39 @@ Date:
 ---
 
 ## Session 5 — Filtering
-Date:
+Date: 9/06/2026
 
-- Applied 0.5-40 Hz band-pass filter (2nd order Butterworth) plus
-  60 Hz notch, using filtfilt for zero phase distortion
-- [What changed visually between raw and filtered — be specific]
+- Applied 0.5-40 Hz band-pass filter (2nd order Butterworth) plus 60 Hz notch, using filtfilt for zero phase distortion
+- iirnotch failed due to undefined function, worked around it with a 2nd-order IIR notch filter at 60 Hz requiring no toolbox
 - Saved comparison figure: ecg_filtered_comparison.png
 
 ---
 
 ## Session 6 — Peak detection and heart rate
-Date:
+Date: 9/07/2026
 
 - Detected R-peaks using findpeaks with 200ms minimum distance
   (physiological refractory period) and an amplitude threshold of
   [your value]
-- Results: [X] beats detected, mean HR [X] bpm, SDNN [X] ms,
-  RMSSD [X] ms
-- Saved figure: ecg_rpeaks_detected.png
+- Initial HRV too high (Over 450ms), found the cause from fs(sampling rate) being computed from full data sample, which included multiple dropout gaps. That gap lowered fs to 342Hz instead of ~500Hz
+- Fixed by auto-detecting the real dropout gap in the data first, restricting the analysis to the clean segment before it computed fs (499.57–499.67 Hz once corrected)
 
 ---
 
 ## Session 7 — Validation
-Date:
+Date: 9/08/2026
 
-- Manually counted beats by [eye / pulse check] across the full
-  recording: [X] beats
-- Algorithm detected: [X] beats
-- Accuracy: [X]%
-- [Where it failed, if anywhere, and why — be honest, this is useful]
+- Manually counted 18 beats by eye across the clean recording (t=8-22seconds)
+- Found script bug: fs was referenced before it was computed, then it was referenced again later on
+- Reworte script with gap-detection and fs calculation happening once after loading and cleaning the data
+- Final Results:
+  Sampling rate: 499.57 Hz
+  Manual count (8–22s window): 18 beats
+  Detector count (same window): 16 beats
+  Accuracy: 88.9%
+  Mean HR: 76.4 bpm
+  SDNN: 204.5 ms
+  RMSSD: 279.4 ms
 
 ---
 
